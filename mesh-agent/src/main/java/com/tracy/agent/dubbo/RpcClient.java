@@ -30,7 +30,6 @@ public class RpcClient {
         RpcInvocation invocation = new RpcInvocation();
         invocation.setMethodName(method);
         invocation.setAttachment("path", interfaceName);
-        // Dubbo内部用"Ljava/lang/String"来表示参数类型是String
         invocation.setParameterTypes(parameterTypesString);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();

@@ -1,5 +1,5 @@
 import com.alibaba.fastjson.JSON;
-import com.tracy.agent.router.Router;
+import com.tracy.agent.router.AbstractRouter;
 import com.tracy.agent.router.WeightedRandomRouter;
 
 /**
@@ -8,7 +8,10 @@ import com.tracy.agent.router.WeightedRandomRouter;
  **/
 public class Test {
     public static void main(String[] args) throws Exception {
-        Router router = new WeightedRandomRouter();
-        System.out.println(JSON.toJSONString(router.find("com.alibaba.dubbo.performance.demo.provider.IHelloService")));
+        AbstractRouter router = new WeightedRandomRouter();
+        int i = 0;
+        while (i++ < 10000) {
+            System.out.println(JSON.toJSONString(router.find("com.alibaba.dubbo.performance.demo.provider.IHelloService")));
+        }
     }
 }

@@ -1,15 +1,16 @@
 package com.tracy.agent.registry;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.coreos.jetcd.Client;
 import com.coreos.jetcd.KV;
 import com.coreos.jetcd.Lease;
 import com.coreos.jetcd.data.ByteSequence;
-import com.coreos.jetcd.kv.GetResponse;
-import com.coreos.jetcd.options.GetOption;
 import com.coreos.jetcd.options.PutOption;
 import com.tracy.agent.model.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.client.RestTemplate;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -64,23 +65,21 @@ public class EtcdRegistry implements IRegistry {
 
     @Override
     public List<Endpoint> find(String serviceName) throws Exception {
-
-        String strKey = MessageFormat.format("/{0}/{1}", rootPath, serviceName);
-        ByteSequence key = ByteSequence.fromString(strKey);
-        GetResponse response = kv.get(key, GetOption.newBuilder().withPrefix(key).build()).get();
-        List<Endpoint> endpoints = new ArrayList<>();
-        for (com.coreos.jetcd.data.KeyValue kv : response.getKvs()) {
-            String s = kv.getKey().toStringUtf8();
-            int index = s.lastIndexOf("/");
-            String endpointStr = s.substring(index + 1, s.length());
+        RestTemplate restTemplate = new RestTemplate();
+        String url = System.getProperty(Constants.ETCD_URL) + "/v2/keys/" + rootPath + "/" + serviceName;
+        JSONObject object = restTemplate.getForObject(url, JSONObject.class);
+        JSONArray nodes = object.getJSONObject("node").getJSONArray("nodes");
+        List<Endpoint> endpoints = new ArrayList<>(nodes.size());
+        for (int i = 0; i < nodes.size(); i++) {
+            JSONObject objectItem = nodes.getJSONObject(i);
+            String key = objectItem.getString("key");
+            String value = objectItem.getString("value");
+            int index = key.lastIndexOf("/");
+            String endpointStr = key.substring(index + 1, key.length());
             String host = endpointStr.split(":")[0];
             int port = Integer.valueOf(endpointStr.split(":")[1]);
             Endpoint endpoint = new Endpoint(host, port);
-            try {
-                endpoint.setScore(Long.valueOf(kv.getValue().toStringUtf8()));
-            } catch (Exception e) {
-                logger.error("kv convert score error! will use default 1.5G config .key:{} value:{}", s, kv.getValue().toStringUtf8());
-            }
+            endpoint.setScore(Long.valueOf(value));
             endpoints.add(endpoint);
         }
         return endpoints;

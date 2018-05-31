@@ -15,11 +15,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 public class DubboRpcEncoder extends MessageToByteEncoder{
-    // header length.
     protected static final int HEADER_LENGTH = 16;
-    // magic header.
     protected static final short MAGIC = (short) 0xdabb;
-    // message flag.
     protected static final byte FLAG_REQUEST = (byte) 0x80;
     protected static final byte FLAG_TWOWAY = (byte) 0x40;
     protected static final byte FLAG_EVENT = (byte) 0x20;

@@ -3,10 +3,8 @@ package com.tracy.agent.router;
 import com.tracy.agent.registry.Endpoint;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.math.BigDecimal;
+import java.util.*;
 
 /**
  * 加权轮询负载均衡
@@ -27,23 +25,26 @@ public class WeightedRandomRouter extends AbstractRouter {
             List<Endpoint> endpoints = entry.getValue();
             int sumScore = 0;
             long min = Long.MAX_VALUE;
+            List<Endpoint> newEndPoint = new ArrayList<>(endpoints.size() * 5);
             for (Endpoint item : endpoints) {
                 sumScore += item.getScore();
                 if (item.getScore() < min) {
                     min = item.getScore();
                 }
+                newEndPoint.add(item);
             }
             int totalSize = (int) (sumScore / min);
             for (Endpoint item : endpoints) {
                 long currentScore = item.getScore();
                 //按照比例，当前节点应该有几个
-                int willCount = (int) (currentScore / sumScore) * totalSize;
+                int willCount = new BigDecimal(totalSize * currentScore / sumScore).setScale(0, BigDecimal.ROUND_HALF_UP).intValue();
                 while (willCount > 1) {
-                    endpoints.add(item);
+                    newEndPoint.add(item);
                     --willCount;
                 }
             }
-            Collections.shuffle(endpoints);
+            Collections.shuffle(newEndPoint);
+            serverMap.put(entry.getKey(), newEndPoint);
         }
     }
 
