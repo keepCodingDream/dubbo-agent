@@ -1,6 +1,6 @@
-import com.alibaba.fastjson.JSON;
-import com.tracy.agent.router.AbstractRouter;
-import com.tracy.agent.router.WeightedRandomRouter;
+import com.sun.management.OperatingSystemMXBean;
+
+import java.lang.management.ManagementFactory;
 
 /**
  * @author tracy.
@@ -8,10 +8,9 @@ import com.tracy.agent.router.WeightedRandomRouter;
  **/
 public class Test {
     public static void main(String[] args) throws Exception {
-        AbstractRouter router = new WeightedRandomRouter();
-        int i = 0;
-        while (i++ < 10000) {
-            System.out.println(JSON.toJSONString(router.find("com.alibaba.dubbo.performance.demo.provider.IHelloService")));
-        }
+//        IRegistry registry = new EtcdRegistry(System.getProperty(Constants.ETCD_URL));
+        OperatingSystemMXBean mem = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        System.out.println("Total RAM：" + mem.getTotalPhysicalMemorySize() / 1024 / 1024 + "MB");
+        System.out.println("Available　RAM：" + mem.getFreePhysicalMemorySize() / 1024 / 1024 + "MB");
     }
 }
