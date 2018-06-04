@@ -14,7 +14,7 @@ docker run --name 'provider-medium' --network dubbo-agent --network-alias provid
 docker run --name 'provider-large' --network dubbo-agent --network-alias provider-large -d agent provider-large
 
 #启动并绑定主机8080端口
-docker run --name 'agent-consumer' -p 8080:8087 --network dubbo-agent --network-alias agent-consumer -d agent consumer
+docker run --name 'agent-consumer' -p 8080:20000 --network dubbo-agent --network-alias agent-consumer -d agent consumer
 
 #主机测试
-http://localhost:8080/madocker build -t agent .pping?interface=com.alibaba.dubbo.performance.demo.provider.IHelloService&method=hash&parameterTypesString=Ljava/lang/String;&parameter=lurenjie
+http://localhost:8080/?interface=com.alibaba.dubbo.performance.demo.provider.IHelloService&method=hash&parameterTypesString=Ljava/lang/String;&parameter=lurenjie

@@ -1,5 +1,6 @@
 package com.tracy.agent;
 
+import com.alibaba.fastjson.JSON;
 import com.tracy.agent.dubbo.RpcClient;
 import com.tracy.agent.model.Constants;
 import com.tracy.agent.registry.Endpoint;
@@ -36,6 +37,7 @@ public class HelloController implements InitializingBean {
                          @RequestParam("method") String method,
                          @RequestParam("parameterTypesString") String parameterTypesString,
                          @RequestParam("parameter") String parameter) throws Exception {
+        logger.info("receive request interfaceName:{} method:{},parameterTypesString:{}, parameter:{}", interfaceName, method, parameterTypesString, parameter);
         String type = System.getProperty(Constants.TYPE);
         if (Constants.CONSUMER.equals(type)) {
             return consumer(interfaceName, method, parameterTypesString, parameter);
@@ -58,23 +60,31 @@ public class HelloController implements InitializingBean {
      * 找到对应代理，转发请求
      */
     private Object consumer(String interfaceName, String method, String parameterTypesString, String parameter) throws Exception {
-        Endpoint endpoint = router.find(interfaceName);
-        String url = "http://" + endpoint.getHost() + ":" + endpoint.getPort();
-        RequestBody requestBody = new FormBody.Builder()
-                .add("interface", interfaceName)
-                .add("method", method)
-                .add("parameterTypesString", parameterTypesString)
-                .add("parameter", parameter)
-                .build();
-        Request request = new Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .build();
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected code " + response);
+        try {
+            Endpoint endpoint = router.find(interfaceName);
+            logger.info("Endpoint info:{}", JSON.toJSONString(endpoint));
+            String url = "http://" + endpoint.getHost() + ":" + endpoint.getPort();
+            RequestBody requestBody = new FormBody.Builder()
+                    .add("interface", interfaceName)
+                    .add("method", method)
+                    .add("parameterTypesString", parameterTypesString)
+                    .add("parameter", parameter)
+                    .build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(requestBody)
+                    .build();
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    throw new IOException("Unexpected code " + response);
+                } else {
+                    logger.info("return log:{}", JSON.toJSONString(response));
+                }
+                return response.body();
             }
-            return response.body();
+        } catch (Exception e) {
+            logger.error("Call error!", e);
+            throw e;
         }
     }
 
