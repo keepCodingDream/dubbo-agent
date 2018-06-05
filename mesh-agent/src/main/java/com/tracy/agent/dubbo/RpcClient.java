@@ -17,17 +17,20 @@ import java.io.PrintWriter;
 public class RpcClient {
     private Logger logger = LoggerFactory.getLogger(RpcClient.class);
 
-    private ConnecManager connectManager;
+    private ConnectManager connectManager;
+    /**
+     * 每次都使用这一个对象，不用每次都创建新的
+     */
+    private RpcInvocation invocation = new RpcInvocation();
+    private Request request = new Request();
 
-    public RpcClient(IRegistry registry) {
-        this.connectManager = new ConnecManager();
+    public RpcClient(IRegistry registry) throws InterruptedException {
+        this.connectManager = new ConnectManager();
     }
 
     public Object invoke(String interfaceName, String method, String parameterTypesString, String parameter) throws Exception {
-
         Channel channel = connectManager.getChannel();
 
-        RpcInvocation invocation = new RpcInvocation();
         invocation.setMethodName(method);
         invocation.setAttachment("path", interfaceName);
         invocation.setParameterTypes(parameterTypesString);
@@ -37,7 +40,6 @@ public class RpcClient {
         JsonUtils.writeObject(parameter, writer);
         invocation.setArguments(out.toByteArray());
 
-        Request request = new Request();
         request.setVersion("2.0.0");
         request.setTwoWay(true);
         request.setData(invocation);

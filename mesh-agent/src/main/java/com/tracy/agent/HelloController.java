@@ -32,12 +32,14 @@ public class HelloController implements InitializingBean {
 
     private Router router;
 
+    public HelloController() throws InterruptedException {
+    }
+
     @RequestMapping(value = "")
     public Object invoke(@RequestParam("interface") String interfaceName,
                          @RequestParam("method") String method,
                          @RequestParam("parameterTypesString") String parameterTypesString,
                          @RequestParam("parameter") String parameter) throws Exception {
-        logger.info("receive request interfaceName:{} method:{},parameterTypesString:{}, parameter:{}", interfaceName, method, parameterTypesString, parameter);
         String type = System.getProperty(Constants.TYPE);
         if (Constants.CONSUMER.equals(type)) {
             return consumer(interfaceName, method, parameterTypesString, parameter);
@@ -77,10 +79,13 @@ public class HelloController implements InitializingBean {
             try (Response response = httpClient.newCall(request).execute()) {
                 if (!response.isSuccessful()) {
                     throw new IOException("Unexpected code " + response);
-                } else {
-                    logger.info("return log:{}", JSON.toJSONString(response));
                 }
-                return response.body();
+                if (response.body() != null) {
+                    byte[] bytes = response.body().bytes();
+                    return new String(bytes);
+                } else {
+                    return null;
+                }
             }
         } catch (Exception e) {
             logger.error("Call error!", e);
