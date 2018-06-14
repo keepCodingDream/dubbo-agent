@@ -2,12 +2,10 @@ package com.tracy.agent.registry;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.coreos.jetcd.Client;
-import com.coreos.jetcd.KV;
-import com.coreos.jetcd.Lease;
 import com.tracy.agent.model.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.text.MessageFormat;
@@ -22,20 +20,8 @@ public class EtcdRegistry implements IRegistry {
     // 使用的是简单的随机负载均衡，如果provider性能不一致，随机策略会影响性能
 
     private final String rootPath = "dubbomesh";
-    private Lease lease;
-    private KV kv;
-    private long leaseId;
 
     public EtcdRegistry(String registryAddress) {
-        Client client = Client.builder().endpoints(registryAddress).build();
-        this.lease = client.getLeaseClient();
-        this.kv = client.getKVClient();
-        try {
-            this.leaseId = lease.grant(30).get().getID();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         String type = System.getProperty(Constants.TYPE);
         if (Constants.PROVIDER.equals(type)) {
             try {
@@ -53,9 +39,14 @@ public class EtcdRegistry implements IRegistry {
     public void register(String serviceName, int port) throws Exception {
         //服务注册的key为:  /dubbomesh/com.some.package.IHelloService/192.168.100.100:2000
         String strKey = MessageFormat.format("/{0}/{1}/{2}:{3}", rootPath, serviceName, IpHelper.getHostIp(), String.valueOf(port));
-        long maxMem = Runtime.getRuntime().maxMemory();
+        // 原先权重使用memory,但发现效果不好，现在使用JVM参数，后期可以直接从启动参数中获取
+        String value = System.getProperty("weight");
+        if (StringUtils.isEmpty(value)) {
+            logger.warn("weight is null! will use default 1");
+            value = "1";
+        }
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.put(System.getProperty(Constants.ETCD_URL) + "/v2/keys/" + strKey + "?value=" + maxMem, "");
+        restTemplate.put(System.getProperty(Constants.ETCD_URL) + "/v2/keys/" + strKey + "?value=" + value, "");
         logger.info("Register a new service at:{}", strKey);
     }
 
@@ -76,7 +67,7 @@ public class EtcdRegistry implements IRegistry {
             String host = endpointStr.split(":")[0];
             int port = Integer.valueOf(endpointStr.split(":")[1]);
             Endpoint endpoint = new Endpoint(host, port);
-            endpoint.setScore(Long.valueOf(value));
+            endpoint.setScore(Integer.valueOf(value));
             endpoints.add(endpoint);
         }
         return endpoints;
@@ -90,9 +81,9 @@ public class EtcdRegistry implements IRegistry {
                 () -> {
                     try {
                         while (true) {
-                            Lease.KeepAliveListener listener = lease.keepAlive(leaseId);
-                            listener.listen();
-                            logger.info("KeepAlive lease:" + leaseId + "; Hex format:" + Long.toHexString(leaseId));
+                            // TODO: 2018/6/7
+                            // keep alive
+                            logger.info("KeepAlive");
                             Thread.sleep(30000);
                         }
                     } catch (Exception e) {

@@ -17,6 +17,8 @@
 package com.tracy.agent.dubbo.model;
 
 
+import sun.misc.Contended;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +28,7 @@ import java.util.Map;
  *
  * @serial Don't change the class name and properties.
  */
+@Contended
 public class RpcInvocation implements Serializable {
 
     private static final long serialVersionUID = -4355285085441097045L;

@@ -5,13 +5,12 @@ ETCD_PORT=2379
 ETCD_URL=http://$ETCD_HOST:$ETCD_PORT
 
 echo ETCD_URL = $ETCD_URL
-curl $ETCD_URL/version
 
 if [[ "$1" == "consumer" ]]; then
   echo "Starting consumer agent..."
   java -jar \
-       -Xms256M \
-       -Xmx256M \
+       -Xms1536M \
+       -Xmx1536M \
        -Dtype=consumer \
        -Dserver.port=20000 \
        -Detcd.url=$ETCD_URL \
@@ -20,9 +19,10 @@ if [[ "$1" == "consumer" ]]; then
 elif [[ "$1" == "provider-small" ]]; then
   echo "Starting small provider agent..."
   java -jar \
-       -Xms128M \
-       -Xmx128M \
+       -Xms1024M \
+       -Xmx1024M \
        -Dtype=provider \
+       -Dweight=1 \
        -Ddubbo.protocol.port=20880 \
        -Dserver.port=30000 \
        -Detcd.url=$ETCD_URL \
@@ -31,9 +31,10 @@ elif [[ "$1" == "provider-small" ]]; then
 elif [[ "$1" == "provider-medium" ]]; then
   echo "Starting medium provider agent..."
   java -jar \
-       -Xms256M \
-       -Xmx256M \
+       -Xms2048M \
+       -Xmx2048M \
        -Dtype=provider \
+       -Dweight=2 \
        -Ddubbo.protocol.port=20880 \
        -Dserver.port=30000 \
        -Detcd.url=$ETCD_URL \
@@ -42,9 +43,10 @@ elif [[ "$1" == "provider-medium" ]]; then
 elif [[ "$1" == "provider-large" ]]; then
   echo "Starting large provider agent..."
   java -jar \
-       -Xms512M \
-       -Xmx512M \
+       -Xms3072M \
+       -Xmx3072M \
        -Dtype=provider \
+       -Dweight=2 \
        -Ddubbo.protocol.port=20880 \
        -Dserver.port=30000 \
        -Detcd.url=$ETCD_URL \

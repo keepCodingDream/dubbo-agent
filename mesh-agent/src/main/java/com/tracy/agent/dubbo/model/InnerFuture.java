@@ -1,14 +1,19 @@
 package com.tracy.agent.dubbo.model;
 
+import com.tracy.agent.model.Response;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class RpcFuture implements Future<Object> {
+public class InnerFuture implements Future<Object> {
     private CountDownLatch latch = new CountDownLatch(1);
-    private long startTime = System.currentTimeMillis();
-    private RpcResponse response;
-    private byte[] defaultResponse = new byte[]{-1, -1, -1, -1};
+    private Response response;
+    private long startTime;
+
+    public InnerFuture() {
+        startTime = System.currentTimeMillis();
+    }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
@@ -26,27 +31,27 @@ public class RpcFuture implements Future<Object> {
     }
 
     @Override
-    public Object get() throws InterruptedException {
+    public Response get() throws InterruptedException {
         latch.await();
         try {
-            return response.getBytes();
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return defaultResponse;
+        return new Response(-1, null);
     }
 
     @Override
-    public Object get(long timeout, TimeUnit unit) throws InterruptedException {
+    public Response get(long timeout, TimeUnit unit) throws InterruptedException {
         boolean b = latch.await(timeout, unit);
         if (b) {
-            return response.getBytes();
+            return response;
         } else {
-            return defaultResponse;
+            return new Response(-1, null);
         }
     }
 
-    public void done(RpcResponse response) {
+    public void done(Response response) {
         this.response = response;
         latch.countDown();
     }

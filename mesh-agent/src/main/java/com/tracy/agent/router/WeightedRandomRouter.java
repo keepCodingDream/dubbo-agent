@@ -1,10 +1,11 @@
 package com.tracy.agent.router;
 
 import com.tracy.agent.registry.Endpoint;
-import org.springframework.util.CollectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 加权轮询负载均衡
@@ -13,53 +14,57 @@ import java.util.*;
  * @create 2018-05-31 14:26
  **/
 public class WeightedRandomRouter extends AbstractRouter {
+    private static Logger logger = LoggerFactory.getLogger(WeightedRandomRouter.class);
 
     /**
      * 初始化重新构造serverMap,以填充List,然后再简单随机。达到加权分散的效果
-     *
-     * @throws Exception
      */
     public WeightedRandomRouter() throws Exception {
         super();
-        for (Map.Entry<String, List<Endpoint>> entry : serverMap.entrySet()) {
-            List<Endpoint> endpoints = entry.getValue();
-            int sumScore = 0;
-            long min = Long.MAX_VALUE;
-            List<Endpoint> newEndPoint = new ArrayList<>(endpoints.size() * 5);
-            for (Endpoint item : endpoints) {
-                sumScore += item.getScore();
-                if (item.getScore() < min) {
-                    min = item.getScore();
-                }
-                newEndPoint.add(item);
-            }
-            int totalSize = (int) (sumScore / min);
-            for (Endpoint item : endpoints) {
-                long currentScore = item.getScore();
-                //按照比例，当前节点应该有几个
-                int willCount = new BigDecimal(totalSize * currentScore / sumScore).setScale(0, BigDecimal.ROUND_HALF_UP).intValue();
-                while (willCount > 1) {
-                    newEndPoint.add(item);
-                    --willCount;
-                }
-            }
-            Collections.shuffle(newEndPoint);
-            serverMap.put(entry.getKey(), newEndPoint);
-        }
     }
 
     @Override
     public Endpoint find(String serviceName) {
         List<Endpoint> endpoints = serverMap.get(serviceName);
-        if (CollectionUtils.isEmpty(endpoints)) {
-            throw new RuntimeException("No services available for interface:[" + serviceName + "]");
-        }
-        Random random = new Random();
-        return endpoints.get(random.nextInt(endpoints.size()));
+        return getBestServer(endpoints);
     }
 
     @Override
     public void reshard() {
 
     }
+
+    /**
+     *
+     * @param serverList
+     * @return
+     */
+    private Endpoint getBestServer(List<Endpoint> serverList) {
+        Endpoint server;
+        Endpoint best = null;
+        int total = 0;
+        for (Endpoint aServerList : serverList) {
+            //当前服务器对象
+            server = aServerList;
+            //当前服务器已宕机，排除
+            if (server.isDown()) {
+                continue;
+            }
+            server.setCurrentWeight(server.getCurrentWeight() + server.getEffectiveWeight());
+            total += server.getEffectiveWeight();
+            if (server.getEffectiveWeight() < server.getScore()) {
+                server.setEffectiveWeight(server.getEffectiveWeight() + 1);
+            }
+            if (best == null || server.getCurrentWeight() > best.getCurrentWeight()) {
+                best = server;
+            }
+        }
+        if (best == null) {
+            return null;
+        }
+        best.setCurrentWeight(best.getCurrentWeight() - total);
+        best.setCheckedDate(new Date());
+        return best;
+    }
 }
+

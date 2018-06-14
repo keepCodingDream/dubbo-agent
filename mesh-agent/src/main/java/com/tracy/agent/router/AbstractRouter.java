@@ -45,4 +45,8 @@ public abstract class AbstractRouter implements Router {
         serviceNames.add("com.alibaba.dubbo.performance.demo.provider.IHelloService");
         return serviceNames;
     }
+
+    public Map<String, List<Endpoint>> getServerMap() {
+        return serverMap;
+    }
 }

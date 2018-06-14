@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author lurenjie
@@ -22,7 +23,6 @@ public class RpcClient {
      * 每次都使用这一个对象，不用每次都创建新的
      */
     private RpcInvocation invocation = new RpcInvocation();
-    private Request request = new Request();
 
     public RpcClient(IRegistry registry) throws InterruptedException {
         this.connectManager = new ConnectManager();
@@ -40,6 +40,7 @@ public class RpcClient {
         JsonUtils.writeObject(parameter, writer);
         invocation.setArguments(out.toByteArray());
 
+        Request request = new Request();
         request.setVersion("2.0.0");
         request.setTwoWay(true);
         request.setData(invocation);
@@ -49,7 +50,7 @@ public class RpcClient {
         channel.writeAndFlush(request);
         Object result = null;
         try {
-            result = future.get();
+            result = future.get(1000L, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             logger.error("call rpc error!", e);
         }
